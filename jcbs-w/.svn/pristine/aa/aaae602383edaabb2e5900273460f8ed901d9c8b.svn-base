@@ -1,0 +1,97 @@
+<template>
+  <div id="app">
+    <router-view :key="activeDate"/>
+  </div>
+</template>
+
+<script>
+  import {getJSToken} from './main'
+
+  export default {
+    name: 'App',
+    data() {
+      return {
+        activeDate: new Date().getTime()
+      }
+    },
+    mounted() {
+      let self = this;
+      let url = location.origin + location.pathname;
+      setTimeout(function () {
+        getJSToken({url: url}).then(res => {
+          wx.config({
+            debug: false,
+            appId: res.appId,
+            timestamp: res.timestamp,
+            nonceStr: res.noncestr,
+            signature: res.signature,
+            jsApiList: [
+              'checkJsApi',
+              'getLocation',
+              'openLocation'
+            ]
+          });
+          wx.ready(function () {
+            // config信息验证后会执行ready方法，所有接口调用都必须在config接口获得结果之后，config是一个客户端的异步操作，所以如果需要在页面加载时就调用相关接口，则须把相关接口放在ready函数中调用来确保正确执行。对于用户触发时才调用的接口，则可以直接调用，不需要放在ready函数中。
+          });
+        })
+        wx.error(function (fail) {
+          console.log('微信接口调试：' + fail);
+          // config信息验证失败会执行error函数，如签名过期导致验证失败，具体错误信息可以打开config的debug模式查看，也可以在返回的res参数中查看，对于SPA可以在这里更新签名。
+        });
+      }, 5)
+    }
+  }
+</script>
+
+<style>
+  #app {
+    font-family: 'Avenir', Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-align: center;
+    color: #2c3e50;
+    background-color: #f8f8f8;
+    min-height: 460px;
+    height:100%;
+  }
+
+  /*初始化样式*/
+  .clearfix:after {
+    height: 0px;
+    font-size: 0;
+    clear: both;
+    display: block;
+    visibility: hidden;
+    content: ".";
+  }
+
+  .clearfix {
+    *zoom: 1;
+  }
+
+  .clear {
+    clear: both;
+    width: 0;
+    height: 0;
+    line-height: 0;
+    font-size: 0;
+  }
+
+  .left {
+    float: left;
+  }
+
+  .right {
+    float: right;
+  }
+
+  ul, li {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .mint-tab-container{
+    top:40px;
+  }
+</style>

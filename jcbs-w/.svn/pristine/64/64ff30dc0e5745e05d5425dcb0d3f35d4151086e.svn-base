@@ -1,0 +1,183 @@
+<template>
+  <div class="myOrder">
+    <div class="title" v-show="false">我的订单</div>
+        <div class="" id="container">
+          <div v-for="(item ,index) in testArr" class="myOrderItem">
+            <div class="ticketInfo">
+              <p class="lineNo">1号线</p>
+              <h1 class="fromTo">金台夕照<i class="arrow"></i>潘家园</h1>
+              <p><span>时间</span>12：23</p>
+              <p><span>数量</span>213</p>
+              <p><span>合计</span>￥23</p>
+            </div>
+            <div class="getTicketPart">
+              <p class="ticketStatus">待出票</p>
+              <input type="button" class="getTicketCode" @click="getTicketCode($event)" value="取票码取票">
+            </div>
+          </div>
+        </div>
+  </div>
+</template>
+<script>
+  import {getUserInfo,getNearStation} from '../../main'
+  import { Toast,Indicator } from 'mint-ui';
+  export default {
+    name: 'myOrder',
+    data () {
+      return {
+        showBar:true,
+        testArr:[1,2,3],
+        selected: '1',
+        direction:1,
+      }
+    },
+    components:{
+    },
+    beforeRouteEnter (to, from, next){
+      next(vm => {
+        // 通过 `vm` 访问组件实例,将值传入oldUrl
+        vm.oldUrl = from.name
+      })
+    },
+//  beforeRouteEnter (to, from, next) {
+//    var self = this;
+////    console.log(to)
+////    console.log(from)
+////    console.log(next)
+////    next();
+//    if(from.name && from.name == 'interprovincialBusDetails'){
+//      selected = '2';
+//    }else{
+//      selected = '1';
+//    }
+//  },
+    mounted(){
+      if(1){
+        this.showBar = true;
+      }else{
+        this.showBar = true;
+      }
+      var self = this;
+      var startStationOl,startLineId,startName,stationId,startLine,startLineName;
+      this.$nextTick(()=>{
+        // 验证是否获取到了上页的url
+        /* eslint-disable no-console */
+//        if(this.oldUrl && this.oldUrl == 'interprovincialBusDetails'){
+//          this.selected = '2';
+//        }else{
+//          this.selected = '1';
+//        }
+      })
+
+      if(self.direction ==1){
+      }else{
+      }
+    },
+    created(){
+//    setTimeout(function(){
+//
+//    },10)
+    },
+    methods:{
+      searchStartPoit(){
+//        this.$router.push({path:'/searchList',query:{direction:this.direction}});
+      }
+      ,getTicketCode(event){
+        var codeValue = event.target.value;
+        this.$router.push({path:'/getTicketCode',query:{codeValue:codeValue}});
+      }
+    }
+  }
+</script>
+
+<!-- Add "scoped" attribute to limit CSS to this component only -->
+<style scoped lang="scss">
+  @import '../../../static/css/common.scss';
+  h1, h2 {
+    font-weight: normal;
+  }
+  ul {
+    list-style-type: none;
+    padding: 0;
+  }
+  li {
+    display: inline-block;
+    margin: 0 10px;
+  }
+  a {
+    color: #42b983;
+  }
+
+  .mint-navbar .mint-tab-item{
+    padding:0;
+    height:40px;
+    line-height: 40px;
+  }
+  .mint-tab-item .mint-tab-item-label{
+    display: inline-block;
+    height: 100%;
+  }
+  .mint-tab-container {
+    top:0;
+  }
+  #container {
+    width:100%;
+    .myOrderItem {
+      display: flex;
+      width:100%;
+      height:112px;
+      background:#fff;
+      margin-top: 10px;
+      padding:6px 15px 8px 15px;
+      justify-content: flex-start;
+      div{
+        height:100%;
+        justify-content: flex-start;
+        align-items: center;
+      }
+      .ticketInfo {
+        font-size: 12px;
+        text-align: left;
+        width:70%;
+      }
+      .getTicketPart {
+        width:30%;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        justify-content: space-between;
+      }
+    }
+  }
+  .arrow{
+    width:0.87rem;
+    height:0.87rem;
+    display: inline-block;
+    background: url('../../../src/assets/searchResult/arrowSingle.png')no-repeat center center;
+    background-size: contain;
+    vertical-align: middle;
+    margin:-0.2rem 0.2rem 0 0.2rem;
+  }
+  .lineNo {
+    font-size:13px;
+  }
+  .fromTo {
+    line-height: 28px;
+    font-size:15px;
+    font-weight: 500;
+  }
+  .ticketStatus {
+    font-size:13px;
+  }
+  .getTicketCode {
+    height: 24px;
+    line-height:20px;
+    border-radius: 2px;
+    text-align: center;
+    background: #fff;
+    color: #03AFFF;
+    border: 0.5px solid rgba(3, 175, 255, 1);
+  }
+
+
+</style>

@@ -1,0 +1,78 @@
+// The Vue build version to load with the `import` command
+// (runtime-only or standalone) has been set in webpack.base.conf with an alias.
+// import apiConfig from '../config/api.config'
+import Vue from 'vue'
+import App from './App.vue'
+import router from './router'
+import axios from 'axios';
+import Mint from 'mint-ui';
+import { MessageBox } from 'mint-ui';
+// axios.defaults.baseURL = apiConfig.baseUrl
+Vue.use(Mint);
+Vue.prototype.$axios = axios;
+Vue.config.productionTip = false
+
+/* eslint-disable no-new */
+new Vue({
+  el: '#app',
+  router,
+  components: { App },
+  template: '<App/>'
+})
+// var app = new Vue({
+//   router,
+//   render: h => h(App)
+// }).$mount('#app');
+function _fetch(options) {
+  //resolve ：当Prmise对象状态从未成功变为成功的时候   可以通过他的异步操怍的结果，作为参数传递出去。
+  //reject  ：当Promise对象状态从未完成变为失败   在异步操作失败时调用，并将异步操作的错误，作为参数传递出去
+  return new Promise((resolve, reject) => {
+    const instance = axios.create({
+      // baseURL: '', //通过env环境变量切换api地址,
+    });
+    instance(options).then(response => {
+      const res = response.data;
+      if (res.state === 2) {
+        resolve(res.data);
+      } else {
+        this.$router.push({path:'/error'})
+        // if (res.resultCode == 401) {
+        //     app.$router.push('/Login');
+        // } else {
+        // MessageBox.error(response.message)
+        // }
+      }
+    }).catch(error => {
+    });
+  });
+}
+//api   发布版本
+//''  开发版本
+let api = '/jcbs';
+// 直销商户基本信息
+export const getUserInfo = params => {
+  return _fetch({url: api+'/public/member/get', method: 'post',params : params,contentType:'application/x-www-form-urlencoded'}).then(res => res);
+};
+export const submitAdvise = params => {
+  return _fetch({url: api+'/public/proposal/add', method: 'post',params : params,contentType:'application/x-www-form-urlencoded'}).then(res => res);
+};
+//获取市内巴士票价
+export const queryCityTicketPrice = params => {
+  return _fetch({url: api+'/public/bus/queryCityTicketPrice', method: 'post',params : params,contentType:'application/x-www-form-urlencoded'}).then(res => res);
+};
+//获取摆渡车明细
+export const getShuttleDetail = params => {
+  return _fetch({url: api+'/public/bus/getShuttleDetail', method: 'post',params : params,contentType:'application/x-www-form-urlencoded'}).then(res => res);
+};
+//获取省际巴士概览
+export const queryProvincialOverview = params => {
+  return _fetch({url: api+'/public/bus/queryProvincialOverview', method: 'post',params : params,contentType:'application/x-www-form-urlencoded'}).then(res => res);
+};
+//获取省际巴士明细
+export const getLineDetail = params => {
+  return _fetch({url: api+'/public/bus/getLineDetail', method: 'post',params : params,contentType:'application/x-www-form-urlencoded'}).then(res => res);
+};
+//获取JSToken
+export const getJSToken = params => {
+  return _fetch({url: api+'/wx/getJSToken', method: 'post',params : params,contentType:'application/x-www-form-urlencoded'}).then(res => res);
+};

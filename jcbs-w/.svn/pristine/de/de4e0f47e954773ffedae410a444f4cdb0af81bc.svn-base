@@ -1,0 +1,85 @@
+import Vue from 'vue'
+import Router from 'vue-router'
+import userCenter from '@/pages/user/userCenter'
+import advise from '@/pages/user/advise'
+import cityBus from '@/pages/subwayLine/cityBus'
+import searchResult from '@/pages/subwayLine/searchResult'
+
+//省内巴士
+import interprovincialBus from '@/pages/subwayLine/interprovincialBus'
+//省内巴士详情
+import interprovincialBusDetails from '@/pages/subwayLine/interprovincialBusDetails'
+//摆渡车
+import ferryCar from '@/pages/subwayLine/ferryCar'
+//升级
+import error from '@/pages/error/error'
+
+
+//搜索列表+搜索中
+import searchList from '@/pages/subwayLine/searchList'
+
+import { Cell , Toast , Navbar, TabItem,Popup  } from 'mint-ui';
+Vue.component(Cell.name, Cell);
+Vue.component(Toast.name, Toast);
+Vue.component(Navbar.name, Navbar);
+Vue.component(TabItem.name, TabItem);
+Vue.component(Popup.name, Popup);
+Vue.use(Router)
+
+export default new Router({
+  mode: 'hash',
+  base:'/jcbs/public/',
+  routes: [
+    {
+      path: '/',
+      name: 'cityBus',
+      component: cityBus
+    },
+    {
+      path: '/userCenter',
+      name: 'userCenter',
+      component: userCenter
+    },
+    {
+      path: '/advise',
+      name: 'advise',
+      component: advise
+    },
+    {
+      path: '/cityBus',
+      name: 'cityBus',
+      component: cityBus
+    },
+    {
+      path: '/searchResult',
+      name: 'searchResult',
+      component: searchResult
+    },
+    {
+      path: '/interprovincialBus',
+      name: 'interprovincialBus',
+      component: interprovincialBus
+    },
+    {
+      path: '/interprovincialBusDetails',
+      name: 'interprovincialBusDetails',
+      component: interprovincialBusDetails
+    },
+    {
+      path: '/ferryCar',
+      name: 'ferryCar',
+      component: ferryCar
+    },
+    {
+      path: '/searchList',
+      name: 'searchList',
+      component: searchList
+    }
+    ,
+    {
+      path: '/error',
+      name: 'error',
+      component: error
+    }
+  ]
+})

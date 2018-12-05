@@ -1,0 +1,380 @@
+<template>
+  <div class="page">
+    <div class="title" v-show="false">线路查询</div>
+    <!-- tab-container -->
+        <div class="swipe">
+          <mt-swipe :auto="2000">
+            <mt-swipe-item v-for="item in imgItems" :key="item.id">
+              <a href="javascript:;" rel="external nofollow">
+                <img :src='item' class="img"/>
+                <span class="desc"></span>
+              </a>
+            </mt-swipe-item>
+          </mt-swipe>
+        </div>
+        <div class="takeInfo">
+          <div class="contain">
+            <div class="counselNum is-clearfix">
+              <p class="titleBar"><span class="titleIcon"></span>路线安排</p>
+              <img :src="ferryCarImg" class="ferryCarImg">
+            </div>
+            <div class="takePlace is-clearfix">
+              <p class="titleBar"><span class="titleIcon"></span>咨询电话</p>
+              <div class="item is-clearfix">
+                <div class="phoneNmun clearfix">
+                  <p class="name">摆渡车：</p>
+                  <div class="clearfix">
+                    <a v-for="(item,index) in lineContactInfo" :href="'tel:' + item" class="num left">{{index!= 0 && index<=(lineContactInfo.length-1)?","+item:item}}</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="takePlace is-clearfix">
+              <p class="titleBar"><span class="titleIcon"></span>乘车地点</p>
+              <div class="item">
+                <div v-for="item in takePlace">
+                  <p v-if="takePlace.length>0" class="place"><i class="stationIcon"></i>{{item.locationName}}</p>
+                  <a class="right" @click="openLocation(item.longitude,item.latitude,item.locationName)" href="javascript:void(0)">
+                    导航
+                  </a>
+                </div>
+              </div>
+            </div>
+            <div class="timetable is-clearfix"><p class="titleBar"><span class="titleIcon"></span>发车时刻表<span class="province">免费</span></p>
+              <div class="timeRange is-clearfix">
+                <!--<div class="item">-->
+                <!--<p class="start">日班车 <span>06:00</span></p>-->
+                <!--<p class="end">夜班车 <span>18:00</span></p>-->
+                <!--</div>-->
+                <div class="placeContent">
+                  <!--<div class="placeTitle">-->
+                  <!--<p>-->
+                  <!--{{ timetable.startPlace }}-->
+                  <!--</p>-->
+                  <!--<p style="margin-left: -1px;">-->
+                  <!--{{ timetable.endPlace }}-->
+                  <!--</p>-->
+                  <!--</div>-->
+                  <table>
+                    <thead>
+                    <tr>
+                      <td>班车类型</td>
+                      <td>发车时刻</td>
+                      <td>班车间隔</td></tr>
+                    </thead>
+                    <tr v-for="item in timetable" class="timeItem">
+                      <td>{{item.departureName}}</td>
+                      <td v-if="item.departureName == '日班车'">{{item.startTime}}-{{item.endTime}}</td>
+                      <td v-if="item.departureName == '夜班车'">{{item.startTime}}-{{item.endTime}}</td>
+                      <td>{{item.desc}}</td>
+                    </tr>
+                  </table>
+                  <!--<div v-for="item in timetable" class="timeItem">-->
+                  <!--<div style="width:24%">{{item.departureName}}</div>-->
+                  <!--<div style="width:30%" v-if="item.departureName == '日间班车'">{{item.startTime}}-{{item.endTime}}</div>-->
+                  <!--<div style="width:30%" v-if="item.departureName == '夜间班车'">{{item.endTime}}-{{item.startTime}}</div>-->
+                  <!--<div>{{item.desc}}</div>-->
+                  <!--</div>-->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+  </div>
+</template>
+<script>
+  import {getShuttleDetail} from '../../main'
+  import {Swipe, SwipeItem} from 'mint-ui'
+  import 'mint-ui/lib/style.css'
+  export default {
+    name: 'ferryCar',
+    data() {
+      return {
+        imgItems: [],
+        takePlace:[],
+        timetable: {},
+        imgPath: require("../../../src/assets/ferryCar/location.png"),
+        ferryCarImg:require("../../../src/assets/ferryCar/ferryCar.png"),
+        lineContactInfo:[]
+      }
+    },
+    mounted(){
+      var self = this;
+      setTimeout(function () {
+        getShuttleDetail({}).then(res=>{
+          self.imgItems = res.attachmentList;
+          self.takePlace = res.stationLocationList;
+          self.timetable = res.departureTimeList;
+          var lineContactInfo = res.lineContactInfo,arr1 = [];
+          if(lineContactInfo.indexOf(',')!=-1){
+            arr1 = lineContactInfo.split(',');
+            self.lineContactInfo = arr1;
+          }else{
+            self.lineContactInfo[0] = lineContactInfo;
+          }
+        })
+      },5)
+    },
+    methods: {
+      openLocation(longitude,latitude,locationName){
+        wx.openLocation({
+          latitude: parseFloat(latitude), // 纬度，浮点数，范围为90 ~ -90
+          longitude: parseFloat(longitude), // 经度，浮点数，范围为180 ~ -180。
+          name: locationName, // 位置名
+          address: locationName, // 地址详情说明
+          scale: 11, // 地图缩放级别,整形值,范围从1~28。默认为最大
+          infoUrl: 'https://map.qq.com/', // 在查看位置界面底部显示的超链接,可点击跳转
+          success: function (res) {
+            console.log("成功："+res.errMsg);
+          },
+          fail: function (res){
+            console.log("失败："+res.errMsg);
+          }
+        })
+      },
+//      jumpBigPic(event) {
+//        console.log(event.currentTarget.src);
+////        基于微信
+//        WeixinJSBridge.invoke("imagePreview", {
+//          "urls": this.imgItems,
+//          "current": event.currentTarget.src
+//        })
+//      },
+      getTip() {
+        this.$axios.post("/jcbs/public/member/get").then(function (res) {
+          this.tip = res.data.state
+
+          console.log(this.tip)
+        }.bind(this))
+      },
+      pushPrice() {
+//        重组数组
+        this.$axios.post("/jcbs/public/member/get").then(function (res) {
+          this.tip = res.data.state
+        }.bind(this))
+      }
+    },
+    components: {
+      'mt-swipe': Swipe,
+      'mt-swipe-item': SwipeItem
+    },
+  }
+</script>
+
+<!-- Add "scoped" attribute to limit CSS to this component only -->
+<style scoped lang="scss">
+  @import '../../../static/css/common.scss';
+
+  /*##########*/
+
+  .swipe {
+    img {
+      max-width: 100%;
+      max-height:100%;
+    }
+    .mint-swipe {
+      width: 100%;
+      height: 200px;
+    }
+    .desc {
+      display: none;
+      font-weight: 600;
+      opacity: .9;
+      padding: 5px;
+      height: 20px;
+      line-height: 20px;
+      width: 100%;
+      color: #fff;
+      background-color: gray;
+      position: absolute;
+      bottom: 0;
+    }
+  }
+
+  .tipBar {
+    display: flex;
+    text-align: left;
+    padding: 10px 15px 13px 15px;
+    background: #fff;
+    margin-bottom: 10px;
+    img {
+      width: 12px;
+      height: 12px;
+      display: inline-block;
+      background: blue;
+      margin-right: 5px;
+    }
+  }
+
+  .placeInner {
+    p {
+      font-size: 16px;
+      margin-top: 0px;
+    }
+  }
+
+  .takeInfo {
+    padding: 0.8rem 0;
+    background: #fff;
+    div.contain{
+      width:92%;
+      margin: auto;
+      .titleIcon {
+        display: inline-block;
+        width: 4px;
+        height: 16px;
+        border-radius: 3px;
+        background-color: rgba(255, 202, 20, 1);
+        vertical-align: top;
+        margin-top: 4px;
+        margin-right: 11px;
+      }
+      .titleBar {
+        height: 24px;
+        line-height: 24px;
+        color: rgba(51, 51, 51, 1);
+        font-size: 17px;
+        font-weight: 700;
+        text-align: left;
+
+        font-family: PingFangSC-Regular;
+      }
+    }
+  }
+
+  .takePlace {
+    .place {
+      text-align: left;
+      width: 88%;
+      display: inline-block;
+      .stationIcon{
+        width:0.8rem;
+        height:1rem;
+        display: inline-block;
+        background:url("../../../src/assets/searchResult/stationIcon.png")no-repeat center center;
+        background-size: contain;
+        margin-right:0.2rem;
+        margin-bottom: -0.1rem;
+      }
+    }
+    a{
+      color: #01afec;
+      font-size: 4vw;
+      font-family: PingFangSC-Regular;
+    }
+    /*img.position {*/
+      /*float: right;*/
+      /*width: 12px;*/
+      /*height: 12px;*/
+    /*}*/
+  }
+
+
+  .timetable {
+    .timeRange {
+      .item {
+        display: flex;
+      }
+    }
+  }
+
+  .item {
+      color: #666;
+      line-height: 10vw;
+      padding: 10px 0;
+      margin-left: 0.9%;
+    .phoneNmun{
+      margin-left:3%;
+    }
+    .name {
+      float: left;
+    }
+    div{
+      .num {
+        float: left;
+        color: #01afec;
+        font-size: 1rem;
+        text-align: left;
+        font-family: PingFangSC-Regular;
+      }
+    }
+    .start {
+      text-align: left;
+      width: 115px;
+    }
+    .end {
+      text-align: left;
+      width: 115px;
+    }
+  }
+
+  .placeContent {
+    /*width: 315px;*/
+    margin: 0 auto;
+    /*border-top: 1px solid #eee;*/
+    /*border-bottom: 1px solid #eee;*/
+    text-align: left;
+    text-indent: 1em;
+    margin-top:1rem;
+    > div {
+      display: flex;
+    }
+  }
+
+  .placeTitle {
+    width: 100%;
+    display: inline-flex;
+    p {
+      box-sizing: border-box;
+      width: 50%;
+      height: 36px;
+      line-height: 36px;
+      border: 1px solid #eee;
+    }
+  }
+
+  .timeItem {
+    /*div {*/
+      /*width: 50%;*/
+      /*border: 1px solid #eee;*/
+      border-bottom: 0;
+      border-top: 0;
+      height: 30px;
+      line-height: 30px;
+      margin-top: -1px;
+    /*}*/
+  }
+.ferryCarImg{
+  width:90%;
+  margin-top:2%;
+  margin-bottom:2%;
+}
+table{
+  width:100%;
+  font-size: 0.85rem;
+  border:0;
+  thead {
+    tr{
+      font-size: 1rem;
+      font-weight: 500;
+      line-height:36px;
+    }
+  }
+  td{
+    border:1px solid #D8D8D8
+  }
+}
+  .province{
+    background-color: #ffca14;
+    color: white;
+    font-size: 0.6rem;
+    font-family: PingFangSC-Medium;
+    padding: 0 1%;
+    margin-right: 2%;
+    border-radius: 0.2rem;
+    display: inline-block;
+    line-height: 1.2rem;
+    margin-left:1%;
+  }
+  /*##########*/
+</style>

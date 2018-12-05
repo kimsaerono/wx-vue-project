@@ -1,0 +1,352 @@
+<template>
+  <div class="page">
+    <div class="title" v-show="false">购票</div>
+    <!--<div class="swipe">-->
+    <!--<mt-swipe :auto="2000">-->
+    <!--<mt-swipe-item v-for="item in imgItems" :key="item.id">-->
+    <!--<a href="javascript:" rel="external nofollow">-->
+    <!--<img :src='item' class="img"/>-->
+    <!--<span class="desc"></span>-->
+    <!--</a>-->
+    <!--</mt-swipe-item>-->
+    <!--</mt-swipe>-->
+    <!--</div>-->
+    <div class="tipBar clearfix"><img class="left" src="../../assets/searchResult/startStation.png" alt="">
+      <div class="letInfo left">
+        <p>{{ start }}<i class="arrow"></i>{{ end }}</p>
+        <div class="clearfix">
+          <div class="provinceTip left">
+            <span class="province">{{ busLineName }}</span><span class="time"></span>
+          </div>
+        </div>
+      </div>
+      <div class="price right">
+        ￥<span>{{ticketPrice}}</span>/张
+      </div>
+    </div>
+
+    <div class="myOrderItem">
+      <div class="ticketInfo">
+        <p><label>数量</label><span class="right">{{ ticketNum }}</span></p>
+        <p><label>支付方式</label><span class="right">微信</span></p>
+      </div>
+    </div>
+    <div class="paybar">
+      <p><label>应付：</label><span class="right red">{{ fullPrice }}</span></p>
+    </div>
+    <div class="needToKnow">
+      <h1 class="knowTip">购票须知:</h1>
+      <p>请您务必在行程起点站取票；</p>
+      <p>车票自购票之日起30天有效，超过有效期请重新购买；</p>
+      <p>首都机场所有航站楼乘车处均支持取票</p>
+    </div>
+    <mt-popup
+      v-model="popupVisible"
+      popup-transition="popup-fade" class="mint-popup-1">
+      <h1>确认申请退款</h1>
+      <ul>
+        <li style="text-align: center">
+          <mt-button @click="popupVisible = false" size="small">取消</mt-button>
+          <mt-button @click="popupVisible = false" size="small" style="margin-left: -4px;">确定</mt-button>
+        </li>
+      </ul>
+    </mt-popup>
+    <mt-button size="large" type="primary" @click="sruePurchase" :disabled="disabledPay">确认支付</mt-button>
+  </div>
+</template>
+<script type="application/javascript">
+  import {createTrxOrder, pay, randomString} from '../../main'
+  import {} from 'mint-ui'
+  import 'mint-ui/lib/style.css'
+
+  export default {
+    name: 'surePurchase',
+    data() {
+      return {
+        selected: '2',
+        imgItems: [],
+        tip: "温馨提示：为了不耽误您的出行，站点发车时间仅供参考，具体发车时间请问询现场工作人员，并请您提前到发车地点等候乘车。"
+        ,
+        takePlace: [],
+        popupVisible: false,
+        reTakePlace: [],
+        ticketPrice: 0.00,
+        ticketNum: this.$route.query.quantity,
+        fullPrice: 0,
+        start: "",
+        end: "",
+        busLineName: "",
+        trxRequestNo: "",
+        disabledPay: false,
+      }
+    },
+
+    created() {
+    },
+    mounted() {
+      let self = this;
+      this.$nextTick(function () {
+        var params = {
+//          userOpenid: 'oYCN5wczp0sc-KGcuMRhMdsywZko',
+          requestNo: randomString(3),
+          stationId: self.$route.query.stationId,
+          stationName: self.$route.query.stationName,
+          busLineId: self.$route.query.busLineId,
+          busLineName: self.$route.query.busLineName,
+          quantity: self.$route.query.quantity
+        }
+        createTrxOrder(params).then(res => {
+          self.ticketPrice = res.unitPrice;
+          self.trxRequestNo = res.requestNo;
+          self.fullPrice = res.amount;
+          self.busLineName = res.busLineName;
+          if (self.$route.query.direction == 1) {
+            self.start = res.startStationName;
+            self.end = "首都机场"
+          } else if (self.$route.query.direction == 2) {
+            self.start = "首都机场"
+            self.end = res.endStationName;
+          }
+        });
+      })
+    },
+    methods: {
+      sruePurchase() {
+        var self = this;
+        var parma = {
+          requestNo: randomString(3),
+          trxRequestNo: self.trxRequestNo
+        }
+        this.disabledPay = "disabled";
+        pay(parma).then(res => {
+          var self = this;
+          var payRequestNo = res.requestNo
+          WeixinJSBridge.invoke(
+            'getBrandWCPayRequest', {
+              appId: res.appId,
+              timeStamp: res.timeStamp, // 支付签名时间戳，注意微信jssdk中的所有使用timestamp字段均为小写。但最新版的支付后台生成签名使用的timeStamp字段名需大写其中的S字符
+              nonceStr: res.nonceStr, // 支付签名随机串，不长于 32 位
+              package: res.packageStr, // 统一支付接口返回的prepay_id参数值，提交格式如：prepay_id=***）
+              signType: res.signType, // 签名方式，默认为'SHA1'，使用新版支付需传入'MD5'
+              paySign: res.paySign, // 支付签名
+            },
+            function (res) {
+              console.log(res);
+              if (res.err_msg == "get_brand_wcpay_request:ok") {
+                self.$router.push({path: '/getTicketCode', query: {payRequestNo: payRequestNo}});
+                // 使用以上方式判断前端返回,微信团队郑重提示：
+                //res.err_msg将在用户支付成功后返回ok，但并不保证它绝对可靠。
+              } else if (res.err_msg == 'get_brand_wcpay_request:cancel'){
+
+              } else {
+//                支付失败
+                self.$router.push({path: '/error'});
+              }
+              self.disabledPay = false;
+            });
+          if (typeof WeixinJSBridge == "undefined") {
+            if (document.addEventListener) {
+              document.addEventListener('WeixinJSBridgeReady', wxPay, false);
+            } else if (document.attachEvent) {
+              document.attachEvent('WeixinJSBridgeReady', wxPay);
+              document.attachEvent('onWeixinJSBridgeReady', wxPay);
+            }
+          }
+        });
+      }
+    },
+    components: {},
+  }
+</script>
+
+<!-- Add "scoped" attribute to limit CSS to this component only -->
+<style scoped lang="scss">
+  @import '../../../static/css/common.scss';
+
+  /*##########*/
+  .mint-popup-1 {
+    width: 298px;
+    height: 154px;
+  }
+
+  .red {
+    color: red;
+  }
+
+  .mint-popup-1 h1 {
+    line-height: 110px;
+  }
+
+  .mint-button--small {
+    border-top: 1px solid #eee;
+    border-radius: 0;
+    padding: 0;
+    width: 43%;
+  }
+
+  .mint-button--default {
+    box-shadow: 0 0 0 #fff;
+    background: #fff;
+  }
+
+  .mint-button--default:nth-of-type(1) .mint-button-text {
+    line-height: 1.2;
+    display: inline-block;
+    width: 100%;
+    border-right: 1px solid #eee;
+  }
+
+  .tipBar {
+    /*display: flex;*/
+    text-align: left;
+    padding: 0.7rem 0.61rem 0.61rem 0.7rem;
+    background: #fff;
+    margin-bottom: 10px;
+
+  }
+
+  .tipBar img {
+    border: none;
+    width: 1.2rem;
+    height: 1.2rem;
+    display: inline-block;
+    margin-right: 5px;
+    margin-top: 0.2rem;
+  }
+
+  .arrow {
+    width: 0.87rem;
+    height: 0.87rem;
+    display: inline-block;
+    background: url('../../../src/assets/searchResult/arrowSingle.png') no-repeat center center;
+    background-size: contain;
+    vertical-align: middle;
+    margin: -0.2rem 0.2rem 0 0.2rem;
+  }
+
+  .letInfo {
+    display: inline-block;
+    width: 69%;
+    white-space: nowrap;
+
+  }
+
+  .letInfo p {
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+
+  .province {
+    background-color: #ffca14;
+    color: rgba(255, 255, 255, 1);
+    font-size: 0.8rem;
+    font-family: PingFangSC-Medium;
+    padding: 1% 2%;
+    margin-right: 2%;
+  }
+
+  .time {
+    font-size: 0.8rem;
+    font-family: PingFangSC-Medium;
+    margin-top: -0.5rem;
+  }
+
+  .provinceTip {
+    width: 100%;
+  }
+
+  .codeStatus {
+    float: right;
+  }
+
+  .ticketDetails {
+    width: 92%;
+    margin: 0 auto;
+    text-align: left;
+    font-size: 15px;
+    margin-top: 20px;
+    position: relative;
+  }
+
+  .ticketDetails .refund {
+    width: 81px;
+    height: 24px;
+    line-height: 20px;
+    border-radius: 2px;
+    text-align: center;
+    background: #fff;
+    color: #03AFFF;
+    border: 0.5px solid rgba(3, 175, 255, 1);
+    position: absolute;
+    right: 0;
+  }
+
+  .price {
+    margin-top: 1rem;
+    font-size: 0.7rem;
+
+  }
+
+  .price span {
+    font-size: 1.2rem;
+    text-align: left;
+    font-weight: 700;
+    font-family: PingFangSC-Regular;
+  }
+
+  .myOrderItem {
+    width: 100%;
+    background: #fff;
+    margin-top: 10px;
+    padding: 6px 15px 8px 15px;
+    div {
+      height: 100%;
+    }
+    .ticketInfo {
+      font-size: 12px;
+      text-align: left;
+      p {
+        line-height: 34px;
+      }
+    }
+  }
+
+  .paybar {
+    label {
+      float: left;
+    }
+    height: 57px;
+    line-height: 49px;
+    padding: 6px 15px 8px 15px;
+    border-top: 1px solid #efefef;
+    background-color: #fff;
+    span {
+      font-size: 25px;
+      &:before {
+        content: "￥";
+        color: #000;
+        font-size: 16px;
+      }
+    }
+  }
+
+  .needToKnow {
+    padding: 21px 15px 8px 15px;
+    text-align: left;
+    h1 {
+      font-weight: 500;
+      font-size: 14px;
+      margin-bottom: 5px;
+    }
+    p {
+      font-size: 13px;
+    }
+  }
+
+  .mint-button {
+    position: fixed;
+    bottom: 0;
+  }
+
+  /*##########*/
+</style>

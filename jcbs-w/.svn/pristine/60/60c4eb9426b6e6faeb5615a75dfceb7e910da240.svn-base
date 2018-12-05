@@ -1,0 +1,31 @@
+//every page common style
+h1, h2 {
+  font-weight: normal;
+}
+
+ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+li {
+  display: inline-block;
+  margin: 0 10px;
+}
+
+button{
+  outline:none;
+}
+input{
+  outline:none;
+}
+
+input[type="button"], input[type="submit"], input[type="reset"] {
+  -webkit-appearance: none;
+}
+textarea {  -webkit-appearance: none;}
+.button{ border-radius: 0; }
+
+
+
+

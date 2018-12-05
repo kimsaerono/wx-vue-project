@@ -1,0 +1,318 @@
+<template>
+  <div class="page">
+    <div class="title" v-show="false">订单详情</div>
+    <!--<div class="swipe">-->
+    <!--<mt-swipe :auto="2000">-->
+    <!--<mt-swipe-item v-for="item in imgItems" :key="item.id">-->
+    <!--<a href="javascript:" rel="external nofollow">-->
+    <!--<img :src='item' class="img"/>-->
+    <!--<span class="desc"></span>-->
+    <!--</a>-->
+    <!--</mt-swipe-item>-->
+    <!--</mt-swipe>-->
+    <!--</div>-->
+
+    <div class="tipBar clearfix"><img class="left" src="../../assets/searchResult/startStation.png" alt="">
+      <div class="letInfo left">
+        <p>{{ startStation }}<i class="arrow"></i>{{ endStation}}</p>
+        <div class="clearfix">
+          <div class="provinceTip left">
+            <span class="province">{{busLine}}</span><span class="time">{{fullTime}}</span>
+          </div>
+        </div>
+      </div>
+      <div class="codeStatus">
+        <span>{{status}}</span>
+      </div>
+    </div>
+    <div class="CodeInfo">
+      <p class="price"><span>￥</span>{{ unitPrice}}</p>
+      <div class="codeTip is-clearfix">请在乘车点扫码或告知取票码领取车票
+        <p class="dashline"><span class="left semicircle"></span><span class="right semicircle"></span></p>
+      </div>
+      <div id="qrcode"></div>
+      <s><div class="codeValue"><span>取票码</span>{{ticketNo}}</div></s>
+    </div>
+
+    <div class="ticketDetails">
+      <div><label>订单号：</label><span>{{trxExternalNo}}</span></div>
+      <div><label>购票时间：</label><span>{{completedTime}}</span></div>
+      <div><label>数量：</label><span>{{quantity}}</span></div>
+      <div><label>支付方式：</label><span>微信</span></div>
+      <div><label>实付金额：</label><span>￥{{amount}}</span></div>
+    </div>
+    <!--<mt-popup-->
+      <!--v-model="popupVisible"-->
+      <!--popup-transition="popup-fade" class="mint-popup-1">-->
+      <!--<h1>确认申请退款</h1>-->
+      <!--<ul>-->
+        <!--<li style="text-align: center"><mt-button @click="popupVisible = false" size="small">取消</mt-button>-->
+          <!--<mt-button @click="popupVisible = false" size="small" style="margin-left: -4px;">确定</mt-button></li>-->
+      <!--</ul>-->
+    <!--</mt-popup>-->
+  </div>
+</template>
+<script>
+  import {queryTicket} from '../../main'
+  import {Toast} from 'mint-ui'
+  import 'mint-ui/lib/style.css'
+  import QRCode from 'qrcodejs2'
+
+  export default {
+    name: 'gotTicketCode',
+    data() {
+      return {
+        selected: '2',
+        imgItems: [],
+        tip: "温馨提示：为了不耽误您的出行，站点发车时间仅供参考，具体发车时间请问询现场工作人员，并请您提前到发车地点等候乘车。"
+        ,
+        popupVisible: false,
+        fullTicketPrice: '',
+        fullTime: "",
+        ticketNo: this.$route.query.ticketNo,
+        trxRequestNo: this.$route.query.trxRequestNo,
+        startStation: "",
+        endStation: "",
+        status: "",
+        amount: "",
+        completedTime: "",
+        quantity: "",
+        unitPrice: "",
+        busLine: "",
+        qrCode: "",
+        trxExternalNo: "",
+      }
+    },
+    created() {
+
+    },
+    mounted(){
+//生成二维码
+      let self = this;
+      setTimeout(function () {
+        var params = {
+          userOpenid: 'oYCN5wczp0sc-KGcuMRhMdsywZko',
+          ticketNo: self.$route.query.ticketNo,
+          trxExternalNo: self.$route.query.trxExternalNo,
+        }
+        queryTicket(params).then(res => {
+          self.startStation = res.startStation;
+          self.endStation = res.endStation;
+          self.status = res.status;
+          self.amount = res.amount;
+          self.completedTime = res.completedTime;
+          self.quantity = res.quantity;
+          self.unitPrice = res.unitPrice;
+          self.trxExternalNo = res.trxExternalNo;
+          self.busLine = res.busLine;
+          self.qrCode = res.qrCode;
+          self.qrcode(self.qrCode)
+        });
+      }, 5);
+
+
+    },
+    methods: {
+      qrcode (qrcodeText) {
+        let qrcode = new QRCode('qrcode', {
+          width: 186,
+          height: 186, // 高度
+          text: qrcodeText // 二维码内容
+          // render: 'canvas' // 设置渲染方式（有两种方式 table和canvas，默认是canvas）
+          // background: '#f0f'
+          // foreground: '#ff0'
+        })
+        console.log(qrcode)
+      },
+    },
+    components: {
+      Toast
+    },
+  }
+</script>
+
+<!-- Add "scoped" attribute to limit CSS to this component only -->
+<style scoped>
+  /*@import '../../../static/css/common.scss';*/
+  li {
+    display: block;
+  }
+
+  /*##########*/
+  .mint-popup-1 {
+    width: 298px;
+    height:154px;
+  }
+
+  .mint-popup-1 h1 {
+    line-height: 110px;
+  }
+  .mint-button--small {
+    border-top:1px solid #eee;
+    border-radius:0;
+    padding:0;
+    width:43%;
+  }
+  .mint-button--default {
+    box-shadow:0 0 0 #fff;
+    background: #fff;
+  }
+  .mint-button--default:nth-of-type(1) .mint-button-text{
+    line-height: 1.2;
+    display: inline-block;
+    width:100%;
+    border-right:1px solid #eee;
+  }
+
+
+  .tipBar {
+    /*display: flex;*/
+    text-align: left;
+    padding: 0.7rem 0.61rem 0.61rem 0.7rem;
+    background: #fff;
+    margin-bottom: 10px;
+
+  }
+  .tipBar img {
+    border:none;
+    width: 1.2rem;
+    height: 1.2rem;
+    display: inline-block;
+    margin-right: 5px;
+    margin-top:0.2rem;
+  }
+
+  .stationIcon{
+    width: 3.6vw;
+    vertical-align: middle;
+    margin-top: 3.5%;
+    margin-right: 1%;
+  }
+
+  .arrow{
+    width:0.87rem;
+    height:0.87rem;
+    display: inline-block;
+    background: url('../../../src/assets/searchResult/arrowSingle.png')no-repeat center center;
+    background-size: contain;
+    vertical-align: middle;
+    margin:-0.2rem 0.2rem 0 0.2rem;
+  }
+  .letInfo{
+    display: inline-block;
+
+  }
+  .letInfo p{
+    font-size:1.2rem;
+    font-weight: 700;
+  }
+  .province{
+    background-color: #ffca14;
+    color: rgba(255, 255, 255, 1);
+    font-size: 0.8rem;
+    font-family: PingFangSC-Medium;
+    padding:1% 2%;
+    margin-right:2%;
+  }
+  .time{
+    font-size: 0.8rem;
+    font-family: PingFangSC-Medium;
+    margin-top: -0.5rem;
+  }
+  .provinceTip{
+    width:100%;
+  }
+  .codeStatus {
+    float: right;
+  }
+  .CodeInfo {
+    width:92%;
+    height:373px;
+    background: #fff;
+    text-align: center;
+    margin:0 auto;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 1);
+    box-shadow:0px 0px 11px 1px #eeeeee;
+  }
+  .CodeInfo .price {
+    font-size:36px;
+    font-weight:700;
+    line-height: 79px;
+
+  }
+  .CodeInfo .price span {
+    font-size:1.7rem;
+  }
+  .CodeInfo .codeTip {
+    opacity: 0.3;
+    width: 100%;
+    font-size: 14px;
+    margin-top: -10px;
+    position: relative;
+
+  }
+  .CodeInfo .codeTip .dashline {
+    width:90%;
+    position: absolute;
+    border-bottom:1px dashed #D8D8D8;
+    left: 5%;
+    top: 31px;
+  }
+  .CodeInfo .codeTip .semicircle {
+    background: #f8f8f8;
+    display: block;
+    position: absolute;
+    border-radius:13px;
+    width: 26px;
+    height: 26px;
+  }
+  .CodeInfo .codeTip .left {
+    top: -13px;
+    left: -31px;
+  }
+  .CodeInfo .codeTip .right {
+    top: -13px;
+    right: -31px;
+  }
+  .CodeInfo #qrcode {
+    opacity: 0.3;
+    width: 186px;
+    margin: 25px auto 15px
+  }
+  .CodeInfo #qrcode img{
+    display: inline!important;
+    height:186px;
+  }
+
+  .CodeInfo .codeValue {
+    opacity:0.3;
+    /*text-decoration:line-through;*/
+  }
+  .CodeInfo .codeValue span{
+    margin-left:-4rem;
+    margin-right: 24px;
+  }
+  .ticketDetails {
+    width:92%;
+    margin:0 auto;
+    text-align: left;
+    font-size:15px;
+    margin-top:20px;
+    position: relative;
+  }
+  .ticketDetails .refund{
+    width: 81px;
+    height: 24px;
+    line-height:20px;
+    border-radius: 2px;
+    text-align: center;
+    background: #fff;
+    color: #03AFFF;
+    border: 0.5px solid rgba(3, 175, 255, 1);
+    position: absolute;
+    right:0;
+  }
+
+  /*##########*/
+</style>

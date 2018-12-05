@@ -1,0 +1,29 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd" >
+<!--
+2013-9-30: Created.
+-->
+<svg>
+<metadata>
+Created by iconfont
+</metadata>
+<defs>
+
+<font id="iconfont" horiz-adv-x="1024" >
+  <font-face
+    font-family="iconfont"
+    font-weight="500"
+    font-stretch="normal"
+    units-per-em="1024"
+    ascent="896"
+    descent="-128"
+  />
+    <missing-glyph />
+    
+    <glyph glyph-name="jian" unicode="&#58931;" d="M768.440022 410.185382c0-14.475689-11.743462-26.185382-26.200732-26.185382l-460.467323 0c-14.458293 0-26.167986 11.70867-26.167986 26.185382l0 0c0 14.458293 11.70867 26.183336 26.167986 26.183336l460.467323 0C756.697583 436.368718 768.440022 424.643676 768.440022 410.185382L768.440022 410.185382z"  horiz-adv-x="1024" />
+
+    
+
+
+  </font>
+</defs></svg>

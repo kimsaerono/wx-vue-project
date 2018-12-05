@@ -1,0 +1,365 @@
+<template>
+  <div class="page">
+    <div class="page-search">
+      <mt-search v-bind:value="value" :placeholder="placeholder" v-on:keyup.native="getValue($event)" v-on:input.native="getValue($event)" @click.native="focusSearch($event)" @blur.native.capture="blurSearch($event)">
+        <mt-cell v-for="(item,index) in result" :key="index" :stationsId = "item.stations.id" :lineOl = "item.stations.lineOl"
+                 :id="item.stations.stations[item.j].id" :ol = "item.stations.stations[item.j].ol" :name ="item.stations.stations[item.j].name"
+                 :title="item.stations.name" :value = "item.stations.stations[item.j].name" :style="{color:item.stations.color+'!important'}" @click.native = "getAddress($event)">
+        </mt-cell>
+      </mt-search>
+      <div v-if="regionVisible !== 'mint-searchbar-core'" class="page-picker-wrapper">
+        <mt-picker :slots="myAddressSlots" valueKey="name" :visibleItemCount="15" @change="addressChange"
+                   :itemHeight="40" :style="{display: ifShow}"></mt-picker>
+      </div>
+    </div>
+  </div>
+</template>
+<script>
+  import {Picker, Search,Cell,Toast} from 'mint-ui'
+  export default {
+    name: "searchList",
+    data() {
+      return {
+        station:{},
+        "value": "",
+        ifShow:"block",
+        "placeholder": "请输入要搜索的站点",
+        "defaultResult": [],
+        arr:[],
+        result:[],
+        regionVisible : '',
+        province: '',//省、
+        city: '',//市
+        provinceCode: '',//省级代码
+        cityCode: '', //市级代码
+        cityOl: '', //市级代码
+        regionInit: false,//禁止地区选择器自动初始化，picker组件会默认进行初始化，导致一进入页面就会默认选中一个初始2级地址
+        //picker组件插槽
+        myAddressSlots: [
+          //省
+          {
+            defaultIndex:0,
+            flex: 1,
+            values: this.getProvinceArr(), //省份数组
+            className: 'slot1',
+            textAlign: 'left'
+          },
+          //分隔符
+          {
+            divider: true,
+            content: '',
+            className: 'slot2'
+          },
+          //市
+          {
+            flex: 1,
+            values: this.getCityArr("1号线方庄线"),
+            className: 'slot3',
+            textAlign: 'left'
+          }
+        ],
+        Picker:"",
+        PickerValue:'',
+        direction:this.$route.query.direction
+      }
+
+    },
+    mounted(){
+
+    },
+    methods: {
+      //picker组件的change事件，进行取值赋值
+      addressChange(picker, values) {
+//        $('.slot3 .picker-item').on('click touchstart touchend',function(){
+//          if(self.$route.query.goback == "toAirPurchase") {
+//            self.$router.push({path: '/toAirPurchase',query:{name:12}});
+//            return
+//          }else{
+//            var that = this;
+//            self.triggerClick(that);
+//          }
+//        });
+        let self = this;
+        this.Picker = picker;
+        this.PickerValue = values;
+        if (this.regionInit) {
+          //取值并赋值
+          if(values[0]){
+            this.province = values[0]["name"];
+            this.provinceCode = values[0]["id"];
+            //给市
+            picker.setSlotValues(1, this.getCityArr(values[0]["name"]));
+          }
+          if( values[1]){
+            this.city = values[1]["name"];
+            this.cityCode = values[1]["id"];
+            this.cityOl = values[1]["ol"];
+          }
+        } else {
+          this.regionInit = true;
+        }
+
+      },
+//      triggerClick(that){
+//        let self = this;
+//        var value = $.trim($(that).text()),
+//          leftText = $.trim($('.slot1 .picker-selected').text()),lineId = '',lineDate = '',ol = '',id = '';
+//        if(leftText.indexOf('号') != -1){
+//          lineId =leftText.split('号')[0]
+//        }else if(leftText.indexOf('夜') != -1){
+//          lineId =19;
+//        }
+//        if(value != "首都机场"){
+//          if(self.direction == 1){
+//            lineDate = to_air_map_data;
+//          }else{
+//            lineDate = to_city_map_data;
+//          }
+//          for(var i=0;i<lineDate.length;i++){
+//            if(lineDate[i].lineOl == lineId){
+//              var stations = lineDate[i].stations;
+//              for(var j=0;j<stations.length;j++){
+//                if(self.direction == 1) {
+//                  if(stations[j].name == value){
+//                    ol = stations[j].ol;
+//                    id = stations[j].id;
+//                    if(lineId == 10){
+//                      lineId =11;
+//                    }else if(lineId == 16 || lineId == 17 || lineId == 18){
+//                      lineId = parseInt(lineId) - 4;
+//                    }
+//                    self.addressClick(lineId,leftText,value,id,ol);
+//                  }
+//                }else{
+//                  if(stations[j].name == value){
+//                    ol = stations[j].ol;
+//                    id = stations[j].id;
+//                    if(lineId == 1){
+//                      lineId =15;
+//                    }else if(lineId == 2 || lineId == 3 || lineId == 4 || lineId == 5 || lineId == 6 || lineId == 7 || lineId == 8 || lineId == 9){
+//                      lineId = parseInt(lineId)+14;
+//                    }else if(lineId == 12 || lineId == 13){
+//                      lineId = parseInt(lineId) + 12;
+//                    }else if(lineId == 16 || lineId == 17 || lineId == 18 || lineId == 19){
+//                      lineId = parseInt(lineId) + 10;
+//                    }
+//                    self.addressClick(lineId,leftText,value,id,ol);
+//                  }
+//                }
+//              }
+//            }
+//          }
+//
+//        }else{
+//          Toast('请选择正确终点');
+//          $(that).removeClass('picker-selected');
+//        }
+//      },
+      addressClick(lineId,lineName,name,id,ol){
+//        源码中进行的页面跳转
+        let self = this,
+          query = self.$route.query,
+          direction = query.direction,
+          goback = query.goback;
+        if(goback == "toAirPurchase"){
+          this.$router.push({path:'/toAirPurchase',query:{stationId:id,stationName:name,lineId:lineId,lineName:lineName,startStationOl:ol,endStationId: this.lineId,state:"end",direction:direction}});
+        }else if(goback == "searchResult"){
+          this.$router.push({path:'/searchResult',query:{stationId:id,stationName:name,lineId:lineId,lineName:lineName,startStationOl:ol,endStationId: this.lineId,state:"end",direction:direction}});
+        }
+      },
+      //遍历json，返回省级对象数组
+      getProvinceArr() {
+        let query = this.$route.query.direction;
+        if(query == 1){
+          this.station = to_air_map_data;
+        }else{
+          this.station = to_city_map_data;
+        }
+        let provinceArr = [];
+        this.station.forEach(function (item) {
+          let obj = {};
+          obj.name = item.name;
+          obj.id = item.id;
+          provinceArr.push(obj);
+        });
+        return provinceArr;
+      },
+      //遍历json，返回市级对象数组
+      getCityArr(province) {
+        let query = this.$route.query.direction;
+        if(query == 1){
+          this.station = to_air_map_data;
+        }else{
+          this.station = to_city_map_data;
+        }
+        let cityArr = [];
+        this.station.forEach(function (item) {
+          if (item.name === province) {
+            if(item.stations){
+              item.stations.forEach(function (args) {
+                if(args && args.ol && args.ol != '100000'){
+                  let obj = {};
+                  obj.ol = args.ol;
+                  obj.name = args.name;
+                  obj.id = args.id;
+                  cityArr.push(obj);
+                }
+              });
+            }
+          }
+        });
+
+        return cityArr;
+      },
+//      搜索事件
+      focusSearch(event) {
+        var searchInput = document.querySelector(".mint-searchbar-core");
+        this.regionVisible = event.target.className;
+        if(this.regionVisible == 'mint-searchbar-cancel'){
+          this.ifShow = "block"
+        }else if(searchInput.value){
+          this.ifShow = "none";
+        }else{
+          this.ifShow = "block";
+        }
+      },
+      blurSearch(event) {
+        var searchInput = document.querySelector(".mint-searchbar-core");
+        this.regionVisible = event.target.className;
+        if(this.regionVisible == 'mint-searchbar-cancel'){
+          this.ifShow = "block"
+        }else if(searchInput.value){
+          this.ifShow = "none";
+        }else{
+          this.ifShow = "block";
+        }
+        this.regionVisible = '';
+      },
+      getValue(event){
+        var searchValue = event.target.value.trim();
+        if(this.direction == 1){
+          var lineDate = to_air_map_data;
+        }else{
+          var lineDate = to_city_map_data;
+        }
+        this.defaultResult = [];
+        for(var i = 0; i <lineDate.length ; i ++){
+          var stations = lineDate[i];
+          for(var j = 0; j <stations.stations.length ; j ++){
+            var b = stations.stations[j];
+            if(b._name && b.name){
+              if(b._name.indexOf(searchValue) > -1 || b.name.indexOf(searchValue) > -1){
+                this.defaultResult.push({stations,j})
+              }
+            }
+          }
+        }
+        this.result = this.defaultResult
+      }
+      ,getAddress(event){
+        var targetAddress = '';
+        if(event.target.nodeName == "DIV"){
+          targetAddress = event.target.parentNode;
+        }else{
+          targetAddress = event.target.parentNode.parentNode;
+        }
+
+        var lineName = targetAddress.children[0].innerText.trim();
+        var consname = targetAddress.children[1].innerText.trim();
+        var lineId = targetAddress.parentNode.attributes["stationsId"].nodeValue;
+        var id = targetAddress.parentNode.attributes["id"].nodeValue;
+        var ol = targetAddress.parentNode.attributes["ol"].nodeValue;
+        this.addressClick(lineId,lineName,consname,id,ol)
+      }
+    }
+    , computed: {
+    }
+    ,
+    components: {
+      'mt-search': Search
+      , 'mt-picker': Picker
+      , 'mt-cell':Cell
+    }
+  }
+</script>
+<style scoped>
+  @import '../../../static/css/common.scss';
+
+  .mint-searchbar {
+    background-color: #fff!important;
+    z-index:999;
+  }
+
+  .mint-searchbar-inner {
+    height: 36px;
+    border-radius: 20px;
+    background-color: #F8F8F8!important;
+  }
+
+  .mint-searchbar-inner .mintui-search {
+    font-size: 20px;
+    padding: 0 7px;
+    z-index:9999999;
+  }
+
+  input[type='search'] {
+    background-color: #F8F8F8;
+  }
+
+  .mint-searchbar-cancel {
+    color: #000;
+    font-family: PingFangSC-Regular;
+  }
+
+  .mint-search {
+    background: #fff;
+    height: auto;
+    overflow-y: scroll;
+    z-index: 999;
+  }
+  html,body,#app,.page,.page-search{
+    overflow-y: auto;
+    -webkit-overflow-scrolling : touch;
+  }
+  .slot3 {
+    background: #fff;
+  }
+  .picker-center-highlight{
+    display: none;
+  }
+  .page-picker-wrapper{
+    height:100%;
+    overflow-y: scroll;
+    /*margin-top: 52px;*/
+    -webkit-overflow-scrolling : touch;
+    z-index:0;
+  }
+  .picker{
+    overflow: auto;
+    overflow-y: scroll;
+    -webkit-overflow-scrolling : touch;
+  }
+  .mint-search-list {
+    /*padding-top:55px;*/
+  }
+  .mint-cell-wrapper {
+    display:block;
+    line-height:41px;
+  }
+  .mint-cell-value {
+    font-size: 15px;
+    text-align: left;
+    float: left;
+  }
+
+  /*线*/
+  .mint-cell-title {
+    text-align: right;
+    float: right;
+    font-size:0.9rem;
+  }
+  html,body,.page{
+    height:100%;
+    background-color: #fff;
+  }
+</style>

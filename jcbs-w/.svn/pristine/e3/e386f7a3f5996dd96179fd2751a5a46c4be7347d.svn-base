@@ -1,0 +1,626 @@
+<template>
+  <div class="page">
+    <div class="title" v-show="false">线路查询</div>
+    <svg id="to_air_map" xmlns="http://www.w3.org/2000/svg"
+         version="1.1" viewBox="0 0 3486 1821" xlink="http://www.w3.org/1999/xlink" style="width: 100%;min-height:200px; height: 27%;">
+    </svg>
+    <svg id="to_city_map" xmlns="http://www.w3.org/2000/svg"
+         version="1.1" viewBox="0 0 3486 1821" xlink="http://www.w3.org/1999/xlink" style="width: 100%;min-height:200px; height: 27%;display: none">
+    </svg>
+    <div class="items">
+      <h1 class="fromTo">{{stationName}}<i class="arrow"></i>{{airport}}</h1>
+      <div class="lineItem clearfix">
+        <span class="lineName left">{{lineName}}</span>
+        <ul class="left">
+          <li><i class="start"></i><span>{{startTime}}</span></li>
+          <li><i class="end"></i><span>{{endTime}}</span></li>
+        </ul>
+        <a v-if="showCheckStation" class="checkStation right" @click="showStationImg">查看站点图</a>
+      </div>
+      <p><i class="light"></i>温馨提示：{{linePrompt}}</p>
+    </div>
+    <div class="takeInfo">
+      <div class="startStation clearfix">
+        <div class="station left"><u></u>{{stationName}}(市内巴士)</div>
+        <a v-if="showLocation" @click="openLocation" class="right" href="javascript:void(0)">导航</a>
+        <a v-if="showPopUp" @click="popupVisible = true" class="right" href="javascript:void(0)">售票处</a>
+      </div>
+      <div class="routes">
+        <!--<div v-html="html"></div>-->
+        <ul>
+          <li v-for="(item,index) in listStation">
+            <p v-if="index == 0"><i class="startStar"></i>{{item.listName}}</p>
+            <p v-show="showmiddleStar" v-if="index != 0 && index < (listStation.length-1)"><i class="middleStar"></i>{{item.listName}}</p>
+            <p v-if="index == listStation.length-1"><i class="endStar"></i>{{item.listName}}</p>
+          </li>
+        </ul>
+        <span v-if="showCount" @click="unfold()" class="routesCount">{{count}}站<u :class="arrow"></u></span>
+      </div>
+    </div>
+    <mt-button size="large" type="primary">{{price}}元</mt-button>
+    <mt-popup
+      v-model="popupVisible"
+      popup-transition="popup-fade" class="mint-popup-1">
+      <h1>首都机场售票处</h1>
+      <ul>
+        <li>1号航站楼：一层5号门内</li>
+        <li>2号航站楼：一层11号门内</li>
+        <li>3号航站楼：一层5号或7号门外
+          <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;二层A\C口或B口廊桥处</p></li>
+        <li style="text-align: center"><mt-button @click="popupVisible = false" size="small">我知道了</mt-button></li>
+      </ul>
+    </mt-popup>
+    <mt-popup
+      v-model="checkStation" v-show="showCheck"
+      popup-transition="popup-fade" class="mint-popup-1 mint-popup-2">
+      <img :src="checkStationImg" alt="">
+      <div class="swipe">
+        <mt-swipe :auto="2000">
+          <mt-swipe-item v-for="item in checkStationImg" :key="item.id">
+            <a href="javascript:;" rel="external nofollow">
+              <img :src='item' class="img"/>
+              <span class="desc"></span>
+            </a>
+          </mt-swipe-item>
+        </mt-swipe>
+      </div>
+    </mt-popup>
+  </div>
+</template>
+<script>
+  import {zoom} from '../../../static/plugin/js/zoom.js'
+  import { getUserInfo,queryCityTicketPrice } from '../../main'
+  import axios from 'axios';
+  import qs from 'querystring';
+  import {Swipe, SwipeItem} from 'mint-ui'
+  import 'mint-ui/lib/style.css'
+  import drawMap from "../../../static/plugin/js/draw_map.js"
+  import cityBus from "../../../static/plugin/js/cityBus.js"
+  export default {
+    name: 'searchResult',
+    data() {
+      return {
+        count:0,
+        showCount:false,
+        price:25,
+        arrow:'down',
+        packUp:'packUp',
+        lineName:'',
+        stationName:'',
+        locationName:'',
+        longitude:0,
+        latitude:0,
+        startTime:'',
+        endTime:'',
+        listStation:[],
+        html:'',
+        linePrompt:'',
+        popupVisible:false,
+        showLocation:true,
+        showPopUp:false,
+        showmiddleStar:false,
+        airport:"首都机场",
+        checkStation:false,
+        showCheck:false,
+        checkStationImg:[],
+        showCheckStation:false
+//        buttonBottom:0
+      }
+    },
+    mounted(){
+      this.checkStation = true;
+      this.checkStation = false;
+      this.showCheck = false;
+//      this.buttonBottom = this.$refs.button.$el.getBoundingClientRect().bottom;
+      this.getCode();
+    },
+    methods: {
+      showStationImg(){
+        this.checkStation = true;
+        this.checkStation = true;
+        this.showCheck = false;
+        $('.mint-popup-2').css({
+          'max-width':'90%',
+          'background-color':'rgba(0,0,0,0.01)',
+          'top':($(window).height()-$('.mint-popup-2').height())/2+$(document).scrollTop()
+        });
+        $('.mint-popup-2 img').css({
+          'max-width':'100%',
+        });
+        setTimeout(function(){
+          $('.mint-popup-2').css({
+            'top':($(window).height()-$('.mint-popup-2').height())/2+$(document).scrollTop()
+          });
+        },1)
+      },
+      openLocation(){
+        let self = this;
+        wx.openLocation({
+          latitude:parseFloat(self.latitude), // 纬度，浮点数，范围为90 ~ -90
+          longitude:parseFloat(self.longitude), // 经度，浮点数，范围为180 ~ -180。
+          name: self.stationName, // 位置名
+          address: self.locationName, // 地址详情说明
+          scale: 11, // 地图缩放级别,整形值,范围从1~28。默认为最大
+          infoUrl: 'https://map.qq.com/', // 在查看位置界面底部显示的超链接,可点击跳转
+          success: function (res) {
+            console.log("成功："+res.errMsg)
+          },
+          fail: function (res){
+            console.log("失败："+res.errMsg)
+          }
+        })
+      },
+//      jumpBigPic(event) {
+//        console.log(event.currentTarget.src);
+////        基于微信
+//        WeixinJSBridge.invoke("imagePreview", {
+//          "urls": [
+//            "http://rescdn.qqmail.com/bizmail/zh_CN/htmledition/images/bizmail/v3/logo1ca3fe.png",
+//            "http://rescdn.qqmail.com/bizmail/zh_CN/htmledition/images/bizmail/v3/icons_features1ca3fe.png",
+//            "http://rescdn.qqmail.com/bizmail/zh_CN/htmledition/images/bizmail/v3/icons_workStyle1ca3fe.png"
+//          ],
+//          "current": event.currentTarget.src
+//        })
+//      },
+      getListName(listData){
+        let lineId = this.$route.query.lineId,
+            stationId = this.$route.query.stationId,
+            direction = this.$route.query.direction;
+        var listArr = [];
+        for(var i=0;i<listData.length;i++){
+          if(listData[i].id == lineId){
+            var stations = listData[i].stations;
+            for(var j = 0;j<stations.length;j++){
+              if(direction == 1){
+                if(parseFloat(stations[j].id) >= parseFloat(stationId)){
+                  listArr.push({
+                    listName:stations[j].name
+                  });
+                }
+              }else if(direction == 2){
+                if(parseFloat(stations[j].id) <= parseFloat(stationId)) {
+                  listArr.unshift({
+                    listName: stations[j].name
+                  });
+                }
+              }else{
+                listArr = [];
+              }
+            }
+          }
+        }
+        if(direction == 1){
+          listArr.push({
+            listName:"首都机场"
+          });
+        }
+//        else if(direction == 2){
+//          listArr.unshift({
+//            listName:"首都机场"
+//          });
+//        }
+        return listArr
+      },
+      getCode(){
+        let self = this;
+        let query = this.$route.query,
+            stationId = query.stationId,
+            endLineId = query.endLineId,
+            stationName = query.stationName,
+            lineId = query.lineId,
+            lineName = query.lineName,
+            startStationOl = query.startStationOl,
+            direction = query.direction;
+        this.lineName = lineName;
+        if(direction == 1){
+          this.stationName = stationName;
+          self.showCheckStation = true;
+        }else{
+          this.airport = stationName;
+          this.stationName = "首都机场";
+          self.showCheckStation = false;
+        }
+        addBusline("to_air_map", to_air_map_data);
+        addBusline("to_city_map", to_city_map_data);
+        if(direction ==1){
+          to_air();
+          zoom('to_air_map');
+          self.listStation = self.getListName(to_air_map_data);
+          var length = self.listStation.length-1;
+          if(length>=2){
+            self.count = length;
+            self.showCount = true;
+          }
+          self.showLocation = true;
+          self.showPopUp = false;
+        }else{
+          to_city();
+          zoom("to_city_map");
+          self.listStation = self.getListName(to_city_map_data);
+          var length = self.listStation.length-1;
+          if(length>=2){
+            self.count = length;
+            self.showCount = true;
+          }
+          self.showLocation = false;
+          self.showPopUp = true;
+        }
+        let param = {
+          "stationId":stationId,
+          "stationName":stationName,
+          "lineId":lineId,
+          "lineName":lineName
+        }
+        setTimeout(function(){
+          queryCityTicketPrice(param).then(res => {
+            self.startTime = res.firstBusTime;
+            self.endTime = res.lastBusTime;
+            self.price = res.TicketPrice;
+            self.longitude = res.longitude;
+            self.latitude = res.latitude;
+            self.locationName = res.locationName;
+            self.checkStationImg = res.attachmentList;
+            if(res.lineAnnouncement && res.lineAnnouncement!=""){
+              self.linePrompt = res.linePrompt + res.lineAnnouncement;
+            }else{
+              self.linePrompt = res.linePrompt;
+            }
+          });
+        },5)
+        var clear_image = function() {
+          $(".page").children('svg').find("image").each(function () {
+            $(this).remove();
+          })
+        };
+        $(".page").find("[data-point='point']").each(function() {
+          $(this).css("cursor", "hand");
+            var tagName = $(this)[0].tagName;
+            //默认tagName为svg
+            var x,y;
+            if (tagName === 'ellipse') {
+              x = $(this).attr("cx") - 56;
+              y = $(this).attr("cy") - 120;
+            } else {
+              x = $(this).attr("x") - 8.24;
+              y = $(this).attr("y") - 42.56;
+            }
+            var XLink_NS = 'http://www.w3.org/1999/xlink';
+            var image = document.createElementNS('http://www.w3.org/2000/svg','image');
+            image.setAttribute("x", x);
+            image.setAttribute("y", y);
+            image.setAttributeNS(null, 'width', 115);
+            image.setAttributeNS(null, 'height', 136);
+            image.setAttributeNS(null, 'style', "z-index:1999999552");
+//            image.setAttribute("width","35");
+//            image.setAttribute("height","56");
+            if($(this).data('line') == lineId){
+              if (direction == 1) {
+                if($(this).data('name') == stationName){
+                  //清楚标记
+                  clear_image();
+                  image.setAttribute("data-mark", "start");
+                  //标记起点
+                  image.setAttributeNS(XLink_NS, 'xlink:href', require("../../../src/assets/searchResult/startPoit.png"));
+//                  image.href.baseVal = require("src/assets/searchResult/startPoit.png");
+//                  startStationOl = $(this).data("ol");
+                  $(this).parent()[0].appendChild(image);
+                }else if($(this).data('name') == "首都机场"){
+                  image.setAttributeNS(XLink_NS, 'xlink:href', require("../../../src/assets/searchResult/endPoit.png"));
+//                  image.href.baseVal = require("../../../src/assets/searchResult/endPoit.png");
+                  var planningSuccess = false;
+                  planningSuccess = planning({startStationOl: startStationOl, startLineId: lineId, endStationOl: 100000, endLineId: endLineId}, to_air_map_data, "to_air_map");
+                  if (planningSuccess) {
+                    show_rect($(this).parent());
+                    $(this).parent()[0].appendChild($(this).parent().find('image[data-mark="start"]')[0]);
+                    $(this).parent()[0].appendChild(image);
+                  } else {
+                    clear_image();
+                  }
+                }
+              } else{
+                if($(this).data('name') == stationName){
+                  //清楚标记
+                  clear_image();
+                  image.setAttribute("data-mark", "end");
+                  //标记起点
+                  image.setAttributeNS(XLink_NS, 'xlink:href', require("../../../src/assets/searchResult/endPoit.png"));
+//                  image.href.baseVal = require("../../../src/assets/searchResult/endPoit.png");
+//                  startStationOl = $(this).data("ol");
+                  $(this).parent()[0].appendChild(image);
+                }else if($(this).data('name') == "首都机场"){
+                  image.setAttributeNS(XLink_NS, 'xlink:href', require("../../../src/assets/searchResult/startPoit.png"));
+//                  image.href.baseVal = require("../../../src/assets/searchResult/startPoit.png");
+                  var planningSuccess = false;
+                  planningSuccess = planning({"startStationOl": 100000, startLineId: lineId, endStationOl: startStationOl, endLineId: lineId}, to_city_map_data, "to_city_map");
+                  if (planningSuccess) {
+                    show_rect($(this).parent());
+                    $(this).parent()[0].appendChild($(this).parent().find('image[data-mark="end"]')[0]);
+                    $(this).parent()[0].appendChild(image);
+                  } else {
+                    clear_image();
+                  }
+                }
+              }
+            }
+        });
+        function to_air() {
+          $("#to_air_map").show();
+          $("#to_city_map").hide();
+          zoom("to_air_map");
+          direction = 1;
+        }
+        function to_city() {
+          $("#to_air_map").hide();
+          $("#to_city_map").show();
+          zoom("to_city_map");
+          direction = 2;
+        }
+//        window.panZoom.zoom(1);
+      },
+      unfold(){
+        if(this.arrow == 'down'){
+          this.arrow = 'up';
+          this.packUp = '';
+          this.showmiddleStar = true;
+        }else{
+          this.arrow = 'down';
+          this.packUp = 'packUp';
+          this.showmiddleStar = false;
+        }
+      }
+    }
+  }
+</script>
+
+<!-- Add "scoped" attribute to limit CSS to this component only -->
+<style scoped lang="scss">
+  @import '../../../static/css/common.scss';
+
+  /*##########*/
+
+  .timeItem {
+    div {
+      width: 50%;
+      border: 1px solid #eee;
+      border-bottom: 0;
+      border-top: 0;
+      height: 30px;
+      line-height: 30px;
+      margin-top: -1px;
+    }
+
+  }
+  .items{
+    text-align: left;
+    margin-left:0.8rem;
+    margin-right: 0.8rem;
+    padding-top:1rem;
+    background-color: #fff;
+    margin-bottom: 0.75rem;
+    font-family: PingFangSC-Medium;
+    border-top:1px solid #efefef;
+  }
+  .items .lineItem .lineName{
+    color: rgba(253, 187, 23, 1);
+    font-size: 0.8rem;
+    text-align: left;
+    margin:0;
+  }
+  .lineItem ul{
+    color: rgba(102, 102, 102, 1);
+    font-size: 15px;
+    text-align: left;
+    font-family: PingFangSC-Regular;
+    li{
+      margin:0;
+    }
+  }
+  .items p{
+    color: rgba(153, 153, 153, 1);
+    font-size: 12px;
+    text-align: left;
+    font-family: PingFangSC-Regular;
+    padding-bottom: 0.5rem;
+    padding-top:0.5rem;
+    margin-top:0.5rem;
+    border-top: 1px solid rgba(239, 239, 239, 1);
+  }
+  .items h1{
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: rgba(51, 51, 51, 1);
+    font-family: PingFangSC-Medium;
+  }
+  .takeInfo{
+    padding-left: 1rem;
+    padding-right:1rem;
+    text-align: left;
+    background-color: #fff;
+    max-height: 15rem;
+    overflow-y: auto;
+  }
+  .start{
+    width:0.87rem;
+    height:0.87rem;
+    display: inline-block;
+    background: url('../../../src/assets/searchResult/start.png')no-repeat center center;
+    background-size: contain;
+    vertical-align: middle;
+    margin:-0.2rem 0.2rem 0 0.2rem;
+  }
+  .end{
+    width:0.87rem;
+    height:0.87rem;
+    display: inline-block;
+    background: url('../../../src/assets/searchResult/end.png')no-repeat center center;
+    background-size: contain;
+    vertical-align: middle;
+    margin:-0.2rem 0.2rem 0 0.2rem;
+  }
+  .light{
+    width:0.87rem;
+    height:0.87rem;
+    display: inline-block;
+    background: url('../../../src/assets/searchResult/light.png')no-repeat center center;
+    background-size: contain;
+    vertical-align: middle;
+    margin:-0.2rem 0.2rem 0 0.2rem;
+  }
+  .startStar{
+    width:0.87rem;
+    height:0.87rem;
+    display: inline-block;
+    background: url('../../../src/assets/searchResult/startStar.png')no-repeat center center;
+    background-size: contain;
+    vertical-align: middle;
+    margin:-0.2rem 0.2rem 0 0.2rem;
+  }
+  .middleStar{
+    width:0.5rem;
+    height:0.5rem;
+    display: inline-block;
+    background: url('../../../src/assets/searchResult/middleStar.png')no-repeat center center;
+    background-size: contain;
+    vertical-align: middle;
+    margin:-0.2rem 0.38rem 0 0.38rem;
+  }
+  .endStar{
+    width:0.87rem;
+    height:0.87rem;
+    display: inline-block;
+    background: url('../../../src/assets/searchResult/endStar.png')no-repeat center center;
+    background-size: contain;
+    vertical-align: middle;
+    margin:-0.2rem 0.2rem 0 0.2rem;
+  }
+  .startStation .station{
+    color: rgba(51, 51, 51, 1);
+    font-size: 1rem;
+    text-align: left;
+    font-family: PingFangSC-Medium;
+  }
+  .startStation u{
+    width:1.5rem;
+    height:1.36rem;
+    display: inline-block;
+    background: url('../../../src/assets/searchResult/startStation.png')no-repeat center center;
+    background-size: contain;
+    vertical-align: middle;
+    margin:-0.2rem 0.2rem 0 0.2rem;
+  }
+  .startStation a{
+    margin-right: 1rem;
+    color: rgba(1, 175, 236, 1);
+    font-size: 0.85rem;
+    text-align: left;
+    font-family: PingFangSC-Medium;
+  }
+  .checkStation{
+    color: rgba(1, 175, 236, 1);
+    font-size: 0.85rem;
+    text-align: left;
+    font-family: PingFangSC-Medium;
+  }
+  .arrow{
+    width:0.87rem;
+    height:0.87rem;
+    display: inline-block;
+    background: url('../../../src/assets/searchResult/arrowSingle.png')no-repeat center center;
+    background-size: contain;
+    vertical-align: middle;
+    margin:-0.2rem 0.2rem 0 0.2rem;
+  }
+  .routes{
+    position: relative;
+    ul{
+      margin-top: 1rem;
+      background-color: rgba(250, 250, 250, 1);
+      padding:0.5rem;
+      margin-bottom:2.5rem;
+      li{
+        margin:0.2rem 0;
+        display: block;
+      }
+    }
+  }
+  .routesCount{
+    cursor: pointer;
+    position:absolute;
+    top:1.6rem;
+    right:1rem;
+  }
+  .mint-button{
+    position: fixed;
+    bottom:0;
+  }
+  .page{
+    min-height: 460px;
+    height:100%;
+    background-color: #fff;
+  }
+  .packUp{
+    height:2.5rem;
+    overflow: hidden;
+  }
+  .up{
+    width:0.5rem;
+    height:0.5rem;
+    display: inline-block;
+    background: url('../../../src/assets/searchResult/up.png')no-repeat center center;
+    background-size: contain;
+    vertical-align: middle;
+    margin-left:0.4rem;
+  }
+  .down{
+    width:0.5rem;
+    height:0.5rem;
+    display: inline-block;
+    background: url('../../../src/assets/searchResult/down.png')no-repeat center center;
+    background-size: contain;
+    vertical-align: middle;
+    margin-left:0.4rem;
+  }
+  .mint-popup-1 {
+    width: 22rem;
+    border-radius: 8px;
+    transform: translate(-50%, 0);
+    ul{
+      width:96%;
+      li{
+        width:100%;
+        text-align: left;
+        .mint-button{
+          margin-top:1rem;
+          position: static;
+          background-color: #03AFFF;
+          color: #fff;
+          margin-bottom: 1rem;
+        }
+      }
+    }
+    h1 {
+      font-size: 20px;
+      color: #333;
+      border-bottom: 1px solid #ccc;
+      margin-top:1rem;
+      padding-bottom: 0.3rem;
+      margin-bottom: 0.5rem;
+    }
+
+    p {
+      margin-bottom: 10px;
+    }
+  }
+  .mint-popup{
+    top:33%;
+  }
+
+  .mint-popup-1::before {
+    triangle: 10px top #fff;
+    content: '';
+    position: absolute;
+    top: -20px;
+    right: 50px;
+  }
+  /*##########*/
+</style>

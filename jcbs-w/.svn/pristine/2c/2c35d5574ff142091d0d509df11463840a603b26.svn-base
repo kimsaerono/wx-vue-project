@@ -1,0 +1,193 @@
+<template>
+  <div id="app">
+    <router-view :key="activeDate"/>
+  </div>
+</template>
+
+<script>
+  import {getJSToken, getNearStation} from './main'
+
+  export default {
+    name: 'App',
+    data() {
+      return {
+        activeDate: new Date().getTime(),
+      }
+    },
+    mounted() {
+      var toAirPoit = $('ellipse[data-ol="100000"][data-line="1"]').eq(0);
+      let self = this;
+      let url = location.origin + location.pathname;
+      setTimeout(function () {
+        getJSToken({url: url}).then(res => {
+          wx.config({
+            debug: false,
+            appId: res.appId,
+            timestamp: res.timestamp,
+            nonceStr: res.noncestr,
+            signature: res.signature,
+            jsApiList: [
+              'checkJsApi',
+              'getLocation',
+              'openLocation',
+              'chooseWXPay',
+//              'getBrandWCPayRequest',
+              'chooseWXPay'
+            ]
+          });
+          wx.ready(function () {
+            self.getLocation();
+//            wx.checkJsApi({
+//              jsApiList: ['getBrandWCPayRequest'], // 检查微信支付接口是否可用
+//              success: function (res) {
+//                var checkResult = JSON.parse(res.checkResult);
+//                if(checkResult.getBrandWCPayRequest){
+//                  alert(res);
+//                  console.log("====");
+//                  console.log(res);
+//                  console.log("====");
+//
+//                }else{
+//                  console.log("====");
+//                  console.log(checkResult)
+//                  console.log("====");
+//                  alert(2)
+//                }
+//              }
+//              ,error:function () {
+//
+//              }
+//            });
+            // config信息验证后会执行ready方法，所有接口调用都必须在config接口获得结果之后，config是一个客户端的异步操作，所以如果需要在页面加载时就调用相关接口，则须把相关接口放在ready函数中调用来确保正确执行。对于用户触发时才调用的接口，则可以直接调用，不需要放在ready函数中。
+          });
+        })
+        wx.error(function (fail) {
+          console.log('微信接口调试：' + fail);
+          // config信息验证失败会执行error函数，如签名过期导致验证失败，具体错误信息可以打开config的debug模式查看，也可以在返回的res参数中查看，对于SPA可以在这里更新签名。
+        });
+      }, 5)
+    },
+    watch: {
+      $route( to , from ){
+        if(to.path == "/" || to.path == "/cityBus"){
+            this.getLocation();
+        };
+      }
+    },
+    methods:{
+      getLocation(){
+        var _self = this;
+        wx.getLocation({
+          type: 'wgs84', // 默认为wgs84的gps坐标，如果要返回直接给openLocation用的火星坐标，可传入'gcj02'
+          success: function (res) {
+            var latitude = res.latitude; // 纬度，浮点数，范围为90 ~ -90
+            var longitude = res.longitude; // 经度，浮点数，范围为180 ~ -180。
+            var speed = res.speed; // 速度，以米/每秒计
+            var accuracy = res.accuracy; // 位置精度
+            getNearStation({latitude, longitude}).then(res => {
+              console.log(res);//id
+              var lineId = res.lineId
+                , stationId = res.stationId
+                , startLineNum = 0
+                , startStationObj = {}
+              for (let i = 0; i < to_air_map_data.length; i++) {
+                if (to_air_map_data[i].id == lineId) {
+                  startLineNum = to_air_map_data[i];
+                }
+              }
+              for (let j = 0; j < startLineNum.stations.length; j++) {
+                if (startLineNum.stations[j].id == stationId) {
+                  startStationObj = startLineNum.stations[j];
+                  var point_xy = startStationObj.point_xy
+                    , point_x = point_xy.split(",")[0]
+                    , point_y = point_xy.split(",")[1];
+                  var begin = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+                  begin.addEventListener("touchend", function () {
+                    var startLineId = startLineNum.id;
+                    var startLineName = startLineNum.name;
+                    var stationId = startStationObj.id;
+                    var startName = startStationObj.name;
+                    var startStationOl = startStationObj.ol;
+                    _self.$router.push({path: '/searchResult', query: {stationId:stationId
+                      ,stationName:startName,lineId:startLineId,lineName:startLineName,startStationOl:startStationOl
+                      ,endStationId:$('ellipse[data-line="'+ startLineId +'"][data-name="首都机场"]').data("id"),direction:1}});
+                  });
+                  begin.setAttribute("x", point_x - 63);
+                  begin.setAttribute("y", point_y - 122);
+                  begin.setAttributeNS(null, 'width', 130);
+                  begin.setAttributeNS(null, 'height', 130);
+                  begin.setAttributeNS(null, 'style', "z-index:1999999552");
+                  begin.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', require("../src/assets/searchResult/startPoit.png"));
+                  if(_self.$route.name == "cityBus"){
+                    var toAirPoit = $('ellipse[data-ol="100000"][data-line="1"]').eq(0);
+                    toAirPoit.parent()[0].appendChild(begin);
+                  }
+                }
+              }
+            });
+          },
+          fail: function (res) {
+            console.log("定位fail")
+          },
+          complete: function () {
+            console.log("complete");
+          }
+        });
+      }
+    }
+
+  }
+</script>
+
+<style>
+  #app {
+    font-family: 'Avenir', Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-align: center;
+    color: #2c3e50;
+    background-color: #f8f8f8;
+    min-height: 460px;
+    /*height: 100%;*/
+  }
+
+  /*初始化样式*/
+  .clearfix:after {
+    height: 0px;
+    font-size: 0;
+    clear: both;
+    display: block;
+    visibility: hidden;
+    content: ".";
+  }
+
+  .clearfix {
+    *zoom: 1;
+  }
+
+  .clear {
+    clear: both;
+    width: 0;
+    height: 0;
+    line-height: 0;
+    font-size: 0;
+  }
+
+  .left {
+    float: left;
+  }
+
+  .right {
+    float: right;
+  }
+
+  ul, li {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .mint-tab-container {
+    top: 40px;
+  }
+</style>

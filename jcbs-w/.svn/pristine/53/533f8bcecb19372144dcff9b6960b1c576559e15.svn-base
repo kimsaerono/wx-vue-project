@@ -1,0 +1,358 @@
+<template>
+  <div class="page-navbar">
+    <div class="title" v-show="false">线路查询</div>
+    <div class="" id="container">
+      <div v-show="sheetAction" class="sheetAction">
+        <div class="btns is-clearfix">
+          <button id="toAir" :class="selectedToAir?'selected':''">去机场 </button>
+          <button id="toCity" :class="selectedToCity?'selected':''">去市区 </button>
+        </div>
+        <div v-if="showStartPoit" class="startEnd">
+          <label for="startPoit"><i class="startPoit"></i>起点</label>
+          <input id="startPoit" @click="searchStartPoit" type="text" class="startPoit" placeholder="选择起点" :value="defaultStartPoit" :disabled="elseDisabled">
+        </div>
+        <div v-if="showEndtPoit" class="startEnd">
+          <label for="endPoit"><i class="entPoit"></i>终点</label>
+          <input id="endPoit" @click="searchStartPoit" type="text" class="endPoit" placeholder="选择终点" :value="defaultEndPoit" :disabled="ifDisabled">
+        </div>
+        <div class="lineTip">
+          {{ lineTip }}
+        </div>
+      </div>
+
+      <div v-show="sheetAction" class="sheetAction ticketNoBar">
+        <div class="btns is-clearfix">
+          <div class="count">
+            <i class="iconfont" :class="num <= 1 ? disabledI : ''" @click = "minusTicketNo">&#xe633;</i>
+            <span>{{ num }}张</span>
+            <i class="iconfont" :class="num >= 10 ? disabledI : ''" @click = "plusTicketNo">&#xe632;</i>
+          </div>
+          <div class="money">
+            <p class="left">￥{{ Price }}/张</p>
+            <p class="right">合计：￥<span class="red">{{ (Price * num).toFixed(2) }}</span></p>
+          </div>
+        </div>
+      </div>
+      <mt-button class="mtButton" size="large" :disabled="ifBuy" type="primary">购票</mt-button>
+    </div>
+  </div>
+</template>
+<script>
+  import {getUserInfo, getNearStation} from '../../main'
+  import {Toast, Indicator} from 'mint-ui';
+  //  var selected = '';
+  export default {
+    name: 'page-navbar',
+    data() {
+      return {
+        selected: '1',
+        direction: 1,
+        ifDisabled:"disabled",
+        elseDisabled:false,
+        defaultEndPoit:"首都机场",
+        defaultStartPoit:"",
+        showStartPoit: true,
+        showEndtPoit: true,
+        sheetAction: true,
+        selectedToAir: true,
+        selectedToCity: false,
+        tiananmen: "",
+        lineTip:"该线路途经T2、T1航站楼最终抵达T3航站楼",
+        disabledI:'disabledI',
+        num:10,
+        Price:'8.00',
+        ifBuy:"disabled",
+        goback:"toAirPurchase"
+      }
+    },
+    components: {
+    },
+    beforeRouteEnter(to, from, next) {
+      next(vm => {
+        // 通过 `vm` 访问组件实例,将值传入oldUrl
+        vm.oldUrl = from.name
+      })
+    },
+//  beforeRouteEnter (to, from, next) {
+//    var self = this;
+////    console.log(to)
+////    console.log(from)
+////    console.log(next)
+////    next();
+//    if(from.name && from.name == 'interprovincialBusDetails'){
+//      selected = '2';
+//    }else{
+//      selected = '1';
+//    }
+//  },
+    mounted() {
+      var self = this;
+      var startStationOl, startLineId, startName, stationId, startLine, startLineName;
+      this.$nextTick(() => {//用于延迟执行一段代码
+        // 验证是否获取到了上页的url
+        /* eslint-disable no-console */
+        if (this.oldUrl && this.oldUrl == 'interprovincialBusDetails') {
+          this.selected = '2';
+        } else {
+          this.selected = '1';
+        }
+      })
+      $('#toAir').click(function () {
+        self.direction = 1;
+        self.elseDisabled = false;
+        self.ifDisabled = "disabled";
+        self.defaultStartPoit = "";
+        self.defaultEndPoit = "首都机场";
+        self.selectedToAir = true;
+        self.selectedToCity = false;
+        self.lineTip = "该线路途经T2、T1航站楼最终抵达T3航站楼";
+      });
+      $('#toCity').click(function () {
+        self.direction = 2;
+        self.elseDisabled = "disabled";
+        self.ifDisabled = false;
+        self.defaultStartPoit = "首都机场";
+        self.defaultEndPoit = "";
+        self.selectedToAir = false;
+        self.selectedToCity = true;
+        self.lineTip = "该线路途经T1航站楼最终抵达T3航站楼";
+      });
+
+    },
+    created() {
+//    setTimeout(function(){
+//
+//    },10)
+    },
+    updated(){
+
+    },
+    methods: {
+      searchStartPoit() {
+        this.$router.push({path: '/searchList', query: {direction: this.direction,goback:this.goback}});
+      }
+      ,minusTicketNo(){
+        if(this.num <= 1){
+          return false
+        }else {
+          this.num --
+        }
+      }
+      ,plusTicketNo(){
+        if(this.num >= 10){
+          return false
+        }else {
+          this.num ++
+        }
+      }
+    }
+  }
+</script>
+
+<!-- Add "scoped" attribute to limit CSS to this component only -->
+<style scoped>
+
+  h1, h2 {
+    font-weight: normal;
+  }
+
+  ul {
+    list-style-type: none;
+    padding: 0;
+  }
+
+  li {
+    display: inline-block;
+    margin: 0 10px;
+  }
+
+  a {
+    color: #42b983;
+  }
+  .red {
+    color: red;
+  }
+
+
+  .sheetAction {
+    margin: auto;
+    background-color: #fff;
+    width: 90%;
+    margin-left: 5.29vw;
+    padding:20px 25px 0px;
+    position: relative;
+    top: 15px;
+    box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.05);
+  }
+  .ticketNoBar {
+    top: 25px;
+
+  }
+  .sheetAction btns {
+    margin-bottom: 16px;
+  }
+  .sheetAction button {
+    width: 19%;
+    height: 21px;
+    line-height: 21px;
+    color: rgba(102, 102, 102, 1);
+    font-size: 1rem;
+    text-align: left;
+    font-family: PingFangSC-Regular;
+    z-index: 1999;
+    border: none;
+    background-color: #fff;
+    text-align: center;
+    line-height: 0.3rem;
+    padding: 0;
+    margin-right: 1rem;
+  }
+
+  .sheetAction button.selected {
+    border-bottom: 1px solid #FFC72C;
+  }
+
+  .sheetAction .startEnd {
+    color: rgba(102, 102, 102, 1);
+    font-family: PingFangSC-Regular;
+    text-align: left;
+    font-size: 15px;
+    border-bottom: 1px solid #efefef;
+    padding:4px 0;
+  }
+
+  i.startPoit {
+    display: inline-block;
+    width: 0.2rem;
+    height: 0.2rem;
+    background-color: #FFC72C;
+    border-radius: 0.2rem;
+    vertical-align: middle;
+    margin-right: 0.3rem;
+  }
+
+  i.entPoit {
+    display: inline-block;
+    width: 0.2rem;
+    height: 0.2rem;
+    background-color: #03AFFF;
+    border-radius: 0.2rem;
+    vertical-align: middle;
+    margin-right: 0.3rem;
+  }
+
+  .sheetAction input {
+    width: 12rem;
+    height: 2.5rem;
+    line-height: 1.5rem;
+    color: rgba(102, 102, 102, 1);
+    font-size: 1rem;
+    text-align: left;
+    font-family: PingFangSC-Regular;
+    padding: 5px;
+    border: none;
+    padding-left:20px;
+  }
+  .sheetAction input::-webkit-input-placeholder { /* WebKit, Blink, Edge */
+    color:    #d8d8d8;
+    font-size:1rem;
+  }
+  .sheetAction input:-moz-placeholder { /* Mozilla Firefox 4 to 18 */
+    color:    #d8d8d8;
+    font-size:1rem;
+
+  }
+  .sheetAction input::-moz-placeholder { /* Mozilla Firefox 19+ */
+    color:    #d8d8d8;
+    font-size:1rem;
+
+  }
+  .sheetAction input:-ms-input-placeholder { /* Internet Explorer 10-11 */
+    color:    #d8d8d8;
+    font-size:1rem;
+  }
+
+  .lineTip {
+    color: #666;
+    font-size: 12px;
+    font-family: PingFangSC-Regular;
+    margin: auto;
+    background-color: #fff;
+    padding: 11px 0.5rem;
+    text-align: left;
+  }
+  .count {
+    padding:0;
+    margin:0;
+    font-size:0;
+    width: 255px;
+    height: 50px;
+    line-height: 50px;
+    margin: 0 auto;
+  }
+  .count i {
+    height: 50px;
+    display: inline-block;
+    width: 50px;
+    border: 1px solid #d8d8d8;
+  }
+  .count span {
+    display: inline-block;
+    width:155px;
+    height:50px;
+    padding-top:2px;
+    font-size:1rem;
+    border-top:1px solid #d8d8d8;
+    border-bottom:1px solid #d8d8d8;
+  }
+  .money {
+    width: 255px;
+    margin: 0 auto;
+    height: 47px;
+    line-height: 47px;
+  }
+  .money .right span {
+    font-size: 25px;
+  }
+  /* + */
+
+  @font-face {
+    font-family: 'iconfont';
+    src: url('../../../static/font/plus/iconfont.eot');
+    src: url('../../../static/font/plus/iconfont.eot?#iefix') format('embedded-opentype'),
+    url('../../../static/font/plus/iconfont.woff') format('woff'),
+    url('../../../static/font/plus/iconfont.ttf') format('truetype'),
+    url('../../../static/font/plus/iconfont.svg#iconfont') format('svg');
+  }
+  .iconfont{
+    font-family:"iconfont" !important;
+    font-size:20px;font-style:normal;
+    -webkit-font-smoothing: antialiased;
+    -webkit-text-stroke-width: 0.2px;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* - */
+  @font-face {
+    font-family: 'iconfont';
+    src: url('../../../static/font/minus/iconfont.eot');
+    src: url('../../../static/font/minus/iconfont.eot?#iefix') format('embedded-opentype'),
+    url('../../../static/font/minus/iconfont.woff') format('woff'),
+    url('../../../static/font/minus/iconfont.ttf') format('truetype'),
+    url('../../../static/font/minus/iconfont.svg#iconfont') format('svg');
+  }
+  .iconfont{
+    font-family:"iconfont" !important;
+    font-size:20px;font-style:normal;
+    -webkit-font-smoothing: antialiased;
+    -webkit-text-stroke-width: 0.2px;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  .disabledI {
+    color:#d8d8d8;
+  }
+  .mtButton {
+    position: fixed;
+    bottom:0;
+  }
+</style>
