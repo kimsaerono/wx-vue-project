@@ -84,9 +84,9 @@
     },
     computed:{
       newINITArr:function(){
-        return this.INITArr.sort((a,b)=>{
-          let atime = new Date(a.trxCompletedTime).getTime();
-          let btime = new Date(b.trxCompletedTime).getTime();
+        return this.COMPLETEDArr.sort((a,b)=>{
+          let atime = new Date(a.completedTime.replace(/-/g,'/')).getTime();
+          let btime = new Date(b.completedTime.replace(/-/g,'/')).getTime();
           return btime - atime;
         });
       },

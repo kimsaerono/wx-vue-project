@@ -103,8 +103,8 @@
     computed:{
       newCOMPLETEDArr:function(){
         return this.COMPLETEDArr.sort((a,b)=>{
-          let atime = new Date(a.completedTime).getTime();
-          let btime = new Date(b.completedTime).getTime();
+          let atime = new Date(a.completedTime.replace(/-/g,'/')).getTime();
+          let btime = new Date(b.completedTime.replace(/-/g,'/')).getTime();
           return btime - atime;
         });
       },
