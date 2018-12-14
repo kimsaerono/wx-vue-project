@@ -110,7 +110,8 @@ const webpackConfig = merge(baseWebpackConfig, {
     // copy custom static assets
     new CopyWebpackPlugin([
       {
-        from: path.resolve(__dirname, '../static'),
+        from: path.resolve(__dirname, '../staticProd'),// 打包本地的staticProd文件（区别于static文件，
+// staticProd问价中没有开发环境中需要的vconsole.min.js文件，减少了体积）
         to: config.build.assetsSubDirectory,
         ignore: ['.*']
       }
