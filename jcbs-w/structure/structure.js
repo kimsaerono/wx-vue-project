@@ -1,4 +1,4 @@
-
+// 在控制台运行npm run structure 来生成staticProd文件夹用来打包成public
 const webpack = require('webpack')
 const path = require('path')
 const CopyWebpackPlugin = require('copy-webpack-plugin')
