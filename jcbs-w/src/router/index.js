@@ -1,5 +1,7 @@
-import Vue from 'vue'
-import Router from 'vue-router'
+// import Vue from 'vue'
+// import Router from 'vue-router'
+
+const Router = require('vue-router')
 
 import userCenter from '@/pages/user/userCenter'
 import advise from '@/pages/user/advise'
