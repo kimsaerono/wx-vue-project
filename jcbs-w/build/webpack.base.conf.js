@@ -92,5 +92,8 @@ module.exports = {
   ],
   externals: {
     "jQuery": 'jquery',
+    "vue":'Vue',
+    'vue-router': 'VueRouter',
+    'axios': 'axios',
   }
 }
